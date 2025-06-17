@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trip Journal - Home</title>
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- MapLibre GL CSS -->
+  <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+
+  <style>
+    /* Override some styles for the map container */
+    #app {
+      height: 400px; /* You can adjust height as needed */
+      border-radius: 0.5rem; /* rounded-lg */
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* subtle shadow */
+      border: 1px solid #CBD5E1; /* Tailwind gray-300 */
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow p-4 flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-800">Trip Journal</h1>
+
+    <button
+      id="toggleHighlight"
+      class="p-3 rounded-lg bg-gray-100 text-gray-600 hover:bg-pink-100 hover:text-pink-600 transition"
+      aria-pressed="false"
+      aria-label="Toggle country highlighting"
+    >
+      Toggle Highlight
+    </button>
+  </header>
+
+  <!-- Search bar -->
+  <div class="p-4 bg-white shadow flex items-center gap-2">
+    <input
+      id="searchInput"
+      type="text"
+      placeholder="Search countries..."
+      class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400 transition"
+    />
+    <button
+      id="searchBtn"
+      class="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
+    >
+      Search
+    </button>
+  </div>
+
+  <!-- Map container -->
+  <main class="flex-grow p-4 bg-gray-100">
+    <div id="app"></div>
+    <!-- Selected countries list -->
+    <section class="p-4 bg-white shadow max-h-48 overflow-y-auto">
+      <h2 class="text-lg font-semibold mb-2 text-gray-700">Selected Countries</h2>
+      <ul id="selectedCountriesList" class="divide-y divide-gray-200">
+        <!-- Dynamically populated -->
+      </ul>
+    </section>
+  </main>
+
+  <!-- MapLibre GL JS -->
+  <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+
+  <!-- Your JS bundle -->
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
