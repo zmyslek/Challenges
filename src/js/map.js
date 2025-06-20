@@ -7,6 +7,16 @@ let highlightEnabled = true;
 let geoJsonCache = null;
 let state = null;
 
+function normalizeName(name) {
+  return name
+    ?.toLowerCase()
+    .normalize('NFD') // decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .trim();
+}
+function normalizeId(str) {
+    return str?.toString().toLowerCase().trim() || '';
+}
 export async function initializeMap(containerId, sharedState) {
   state = sharedState;
 
@@ -54,11 +64,6 @@ export async function initializeMap(containerId, sharedState) {
 }
 
 export function updateHighlightedCountries() {
-  console.log("map:", map);
-  console.log("geoJsonCache:", geoJsonCache);
-  console.log("state:", state);
-  console.log("state?.selectedCountries:", state?.selectedCountries);
-
   if (!map || !geoJsonCache || !state?.selectedCountries) {
     console.warn("Highlight skipped: Missing map, geoJson, or selectedCountries");
     return;
@@ -66,26 +71,34 @@ export function updateHighlightedCountries() {
 
   if (!map.isStyleLoaded()) {
     map.once('idle', () => {
-      console.log("Map is now idle, retrying highlight");
       updateHighlightedCountries();
     });
-    console.warn("Map not ready, deferring highlight");
     return;
   }
 
-  // Find matching features by ISO Alpha-2 code
+  if (!highlightEnabled) {
+    // Clear highlights if disabled
+    if (map.getSource('countries-highlight-source')) {
+      map.getSource('countries-highlight-source').setData({
+        type: 'FeatureCollection',
+        features: []
+      });
+    }
+    return;
+  }
+
+  // Normalize function to compare country names
+  function normalizeName(name) {
+    return name?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() || '';
+  }
+
+  // Filter features by matching normalized country names from selectedCountries
   const selectedFeatures = geoJsonCache.features.filter(feature => {
-    const countryCode = feature.properties['ISO3166-1-Alpha-2'];
-    return state.selectedCountries.some(c => c.id === countryCode);
+    const featureName = normalizeName(feature.properties.name);
+    return state.selectedCountries.some(c => normalizeName(c.name) === featureName);
   });
 
-  console.log("Highlighting countries:", 
-    state.selectedCountries.map(c => c.id),
-    "Matched features:", 
-    selectedFeatures.map(f => f.properties['ISO3166-1-Alpha-2'])
-  );
-
-  // If the highlight source doesn't exist yet, create it
+  // Add or update highlight source and layer
   if (!map.getSource('countries-highlight-source')) {
     map.addSource('countries-highlight-source', {
       type: 'geojson',
@@ -101,16 +114,14 @@ export function updateHighlightedCountries() {
       source: 'countries-highlight-source',
       paint: {
         'fill-color': '#ff69b4',
-        'fill-opacity': 0.6,
         'fill-outline-color': '#ff1493'
       }
-    }, 'countries-outline-layer');
+    });
   } else {
-    // If the source exists, update it
     const source = map.getSource('countries-highlight-source');
     source.setData({
       type: 'FeatureCollection',
-      features: highlightEnabled ? selectedFeatures : []
+      features: selectedFeatures
     });
   }
 }

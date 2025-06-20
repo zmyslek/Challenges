@@ -73,18 +73,23 @@ function setupSearchAutocomplete() {
   });
 }
 
+function normalizeName(name) {
+  return name?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() || '';
+}
+
 function addCountryToSelected(feature) {
-  const countryCode = feature.properties["ISO3166-1-Alpha-2"];
-  if (!countryCode || countryCode === '-99') {
-    alert(`"${feature.properties.name}" is not a recognized country and cannot be selected.`);
-    return;
-  }
-  const countryName = feature.properties.name || 'Unknown';
+  const countryName = feature.properties.name || feature.properties.NAME || 'Unknown';
 
-  if (!countryCode) return;
-  if (state.selectedCountries.some(c => c.id.toLowerCase() === countryCode.toLowerCase())) return;
+  // Prevent duplicates by normalized name
+  if (state.selectedCountries.some(c => normalizeName(c.name) === normalizeName(countryName))) return;
 
-  state.selectedCountries.push({ id: countryCode, name: countryName });
+  // Add country with id and name both normalized name
+  const normalized = normalizeName(countryName);
+  state.selectedCountries.push({
+    id: normalized,
+    name: countryName
+  });
+
   saveState();
   updateHighlightedCountries();
   renderSelectedCountries();
@@ -113,8 +118,6 @@ function renderSelectedCountries() {
     btn.addEventListener('click', () => {
       state.selectedCountries = state.selectedCountries.filter(sc => sc.id !== c.id);
       saveState();
-      console.log(map.isStyleLoaded(), map && geoJsonCache); //it breaks here
-      console.log('Selected countries after removal:', state.selectedCountries);
       updateHighlightedCountries();
       renderSelectedCountries();
     });
