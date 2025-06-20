@@ -10,6 +10,7 @@
 
   <!-- MapLibre GL CSS -->
   <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <style>
     /* Override some styles for the map container */
@@ -64,7 +65,20 @@
       </ul>
     </section>
   </main>
-
+  <nav class="bg-white border-t border-gray-200 flex justify-around py-3">
+      <a href="index.html" class="text-blue-600 flex flex-col items-center">
+        <i class="fas fa-home"></i>
+        <span class="text-xs mt-1">Home</span>
+      </a>
+      <a href="gallery.html" class="text-gray-600 flex flex-col items-center">
+        <i class="fas fa-photo-video"></i>
+        <span class="text-xs mt-1">Gallery</span>
+      </a>
+      <a href="profile.html" class="text-gray-600 flex flex-col items-center">
+        <i class="fas fa-user"></i>
+        <span class="text-xs mt-1">Profile</span>
+      </a>
+    </nav>
   <!-- MapLibre GL JS -->
   <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
 

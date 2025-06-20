@@ -1,49 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gallery | Trip Journal</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 </head>
 <body class="bg-gray-100">
-  <div id="app" class="flex flex-col h-screen">
+
+  <div id="app" class="flex flex-col min-h-screen">
     <header class="bg-blue-600 text-white p-4 shadow-md">
       <h1 class="text-xl font-bold">Gallery</h1>
     </header>
-    
-    <div class="flex-1 overflow-y-auto p-4">
-      <div class="mb-4">
-        <h2 class="text-lg font-semibold mb-2">Your Travel Photos</h2>
-        <div class="grid grid-cols-2 gap-4" id="galleryPhotos">
-          <!-- Photos will be loaded here -->
+
+    <main class="flex-1 p-4 overflow-y-auto pb-20">
+      <section class="mt-8">
+        <div id="galleryPhotos" class="max-w-full"></div>
+      </section>
+      <!-- Modal for viewing photo -->
+      <div id="photoModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-4 rounded-lg max-w-3xl w-full shadow-xl relative">
+          <button id="closeModal" class="absolute top-2 right-2 text-gray-700 hover:text-red-500 text-xl">&times;</button>
+          <img id="modalImage" src="" alt="Enlarged view" class="w-full h-auto max-h-[80vh] object-contain rounded">
         </div>
       </div>
-      
-      <div class="bg-white rounded-lg shadow p-4">
-        <h3 class="font-medium text-gray-700 mb-3">Add New Photo</h3>
-        <form id="uploadForm" class="space-y-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Country</label>
-            <input type="text" id="photoCountry" class="w-full p-2 border rounded" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Date</label>
-            <input type="date" id="photoDate" class="w-full p-2 border rounded" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Photo URL</label>
-            <input type="url" id="photoUrl" class="w-full p-2 border rounded" required>
-          </div>
-          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-            Add Photo
-          </button>
-        </form>
-      </div>
-    </div>
-    
-    <nav class="bg-white border-t border-gray-200 flex justify-around py-3">
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3 z-50">
       <a href="index.html" class="text-gray-600 flex flex-col items-center">
         <i class="fas fa-home"></i>
         <span class="text-xs mt-1">Home</span>
@@ -58,6 +42,10 @@
       </a>
     </nav>
   </div>
-  <script src="js/app.js"></script>
+
+  <!-- Load photos data first -->
+  <script src="js/photosData.js"></script>
+  <!-- Then load gallery.js -->
+  <script src="js/gallery.js"></script>
 </body>
 </html>

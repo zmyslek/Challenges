@@ -1,4 +1,10 @@
-// Search locations
+// Global app state for selected countries and highlight toggle
+const state = {
+  selectedCountries: JSON.parse(localStorage.getItem('selectedCountries')) || []
+};
+let highlightEnabled = false;
+
+// Search locations: local GeoJSON first, then fallback to API
 async function searchLocations(query) {
   if (!query) return [];
 
@@ -10,7 +16,7 @@ async function searchLocations(query) {
   return await searchViaApi(query);
 }
 
-// Search in local GeoJSON
+// Search in local GeoJSON file
 async function searchInLocalGeoJson(query) {
   try {
     const response = await fetch('/assets/countries.geojson');
@@ -25,7 +31,6 @@ async function searchInLocalGeoJson(query) {
       })
       .map(feature => {
         const name = feature.properties.name;
-        // Use name as id always (normalized for safety)
         const id = name.trim().toLowerCase();
 
         return {
@@ -34,16 +39,14 @@ async function searchInLocalGeoJson(query) {
           geometry: feature.geometry,
           properties: feature.properties
         };
-      }
-    );
-
+      });
   } catch (error) {
     console.error('Error in local search:', error);
     return [];
   }
 }
 
-// Search via API
+// Search countries via MapTiler API (fallback)
 async function searchViaApi(query) {
   try {
     const response = await fetch(
@@ -55,17 +58,76 @@ async function searchViaApi(query) {
       feature.id = name.trim().toLowerCase();
       return feature;
     });
-
   } catch (error) {
     console.error('API search error:', error);
     return [];
   }
 }
 
-// Setup search functionality
+// Normalize country names (remove accents, lowercase)
+function normalizeName(name) {
+  return name?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() || '';
+}
+
+// Toggle highlight of a country in selection state
+function toggleCountryHighlight(country) {
+  const countryName = (country.place_name || country.properties?.name || 'unknown');
+  const normalized = normalizeName(countryName);
+
+  const index = state.selectedCountries.findIndex(c => c.id === normalized);
+  if (index >= 0) {
+    state.selectedCountries.splice(index, 1);
+  } else {
+    state.selectedCountries.push({
+      id: normalized,
+      name: countryName
+    });
+  }
+
+  localStorage.setItem('selectedCountries', JSON.stringify(state.selectedCountries));
+  updateSelectedCountriesList();
+
+  if (highlightEnabled) {
+    updateHighlightedCountries(); // Should be defined in your map.js or equivalent
+  }
+}
+
+// Update the list UI of selected countries
+function updateSelectedCountriesList() {
+  const listContainer = document.getElementById('selectedCountriesList');
+  if (!listContainer) return;
+
+  if (state.selectedCountries.length > 0) {
+    listContainer.innerHTML = state.selectedCountries.map(country => `
+      <li class="py-3 flex justify-between items-center">
+        <span class="text-blue-600">${country.name || 'Unknown Country'}</span>
+        <button class="text-red-500 hover:text-red-700 delete-btn" data-id="${country.id}">
+          <i class="fas fa-trash"></i>
+        </button>
+      </li>
+    `).join('');
+  } else {
+    listContainer.innerHTML = '<li class="py-3 text-gray-500">No countries selected</li>';
+  }
+
+  // Setup delete button event handlers
+  document.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const countryId = btn.getAttribute('data-id').trim().toLowerCase();
+      const country = state.selectedCountries.find(c => c.id === countryId);
+      if (country) {
+        toggleCountryHighlight(country);
+      }
+    });
+  });
+}
+
+// Setup search box with dynamic results and interaction
 function setupSearch() {
   const searchInput = document.getElementById('searchInput');
   const searchResults = document.getElementById('searchResults');
+
+  if (!searchInput || !searchResults) return;
 
   let searchTimeout;
 
@@ -92,52 +154,56 @@ function setupSearch() {
       }
 
       searchResults.innerHTML = results.map(country => {
-        const isSelected = state.selectedCountries.some(c => c.id === (country.id || country.place_name || country.properties?.name || '').trim().toLowerCase());
+        const id = country.id || normalizeName(country.place_name) || '';
+        const name = country.place_name || country.properties?.name || 'Unknown Country';
+        const isSelected = state.selectedCountries.some(c => c.id === id);
         return `
-                    <div class="p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer flex justify-between items-center search-result"
-                         data-id="${country.id}"
-                    >
-                        <span>${country.place_name || 'Unknown Country'}</span>
-                        <input 
-                            type="checkbox" 
-                            class="country-checkbox rounded text-pink-500" 
-                            ${isSelected ? 'checked' : ''}
-                            data-id="${country.id}"
-                        >
-                    </div>
-                `;
+          <div
+            class="p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer flex justify-between items-center search-result"
+            data-id="${id}"
+          >
+            <span>${name}</span>
+            <input 
+              type="checkbox" 
+              class="country-checkbox rounded text-pink-500" 
+              ${isSelected ? 'checked' : ''}
+              data-id="${id}"
+            >
+          </div>
+        `;
       }).join('');
 
-      // Add event listeners to search results
+      // Add event listeners to search results (click to select country & close dropdown)
       document.querySelectorAll('.search-result').forEach(result => {
         result.addEventListener('click', (e) => {
           if (e.target.classList.contains('country-checkbox')) return;
 
           const countryId = result.getAttribute('data-id');
-          const country = results.find(c => c.id === countryId);
+          const country = results.find(c => (c.id === countryId) || (normalizeName(c.place_name) === countryId));
           if (country) {
-            moveCameraToLocation(country);
+            moveCameraToLocation(country); // Optional: your map function
             searchInput.value = country.place_name || '';
             searchResults.classList.add('hidden');
           }
         });
       });
 
-      // Add event listeners to checkboxes
+      // Add event listeners to checkboxes for toggle highlight
       document.querySelectorAll('.country-checkbox').forEach(checkbox => {
         checkbox.addEventListener('click', (e) => {
           e.stopPropagation();
           const countryId = checkbox.getAttribute('data-id');
-          const country = results.find(c => c.id === countryId);
+          const country = results.find(c => (c.id === countryId) || (normalizeName(c.place_name) === countryId));
           if (country) {
             toggleCountryHighlight(country);
           }
         });
       });
+
     }, 300);
   });
 
-  // Hide results when clicking outside
+  // Hide search results when clicking outside search box
   document.addEventListener('click', (e) => {
     if (!searchResults.contains(e.target) && e.target !== searchInput) {
       searchResults.classList.add('hidden');
@@ -145,67 +211,42 @@ function setupSearch() {
   });
 }
 
-function normalizeName(name) {
-  return name?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim() || '';
-}
-
-function toggleCountryHighlight(country) {
-  const countryName = (country.place_name || country.properties?.name || 'unknown');
-  const normalized = normalizeName(countryName);
-
-  const index = state.selectedCountries.findIndex(c => c.id === normalized);
-  if (index >= 0) {
-    state.selectedCountries.splice(index, 1);
-  } else {
-    state.selectedCountries.push({
-      id: normalized,
-      name: countryName
-    });
+// Toggle the highlight feature on/off
+function toggleHighlightEnabled() {
+  highlightEnabled = !highlightEnabled;
+  const btn = document.getElementById('toggleHighlight');
+  if (btn) {
+    btn.textContent = highlightEnabled ? 'Disable Highlight' : 'Enable Highlight';
   }
-
-  localStorage.setItem('selectedCountries', JSON.stringify(state.selectedCountries));
-  updateSelectedCountriesList();
-
   if (highlightEnabled) {
-    updateHighlightedCountries(); // uses cached geoJson inside map.js
+    updateHighlightedCountries();
+  } else {
+    clearHighlightedCountries();
   }
 }
 
-// Update selected countries list
-function updateSelectedCountriesList() {
-  const listContainer = document.getElementById('selectedCountriesList');
-  if (listContainer) {
-    listContainer.innerHTML = state.selectedCountries.length > 0
-      ? state.selectedCountries.map(country => `
-                <li class="py-3 flex justify-between items-center">
-                    <span class="text-blue-600">${country.name || 'Unknown Country'}</span>
-                    <button class="text-red-500 hover:text-red-700 delete-btn" data-id="${country.id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </li>
-            `).join('')
-      : '<li class="py-3 text-gray-500">No countries selected</li>';
-
-    // Add delete button handlers
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const countryId = btn.getAttribute('data-id').trim().toLowerCase();
-        const country = state.selectedCountries.find(c => c.id === countryId);
-        if (country) {
-          toggleCountryHighlight(country);
-        }
-      });
-    });
-  }
+// Placeholder: update highlighted countries on map (to be implemented in your map.js)
+function updateHighlightedCountries() {
+  // Implement map highlight logic here
+  console.log('Updating highlighted countries:', state.selectedCountries);
 }
 
-// Initialize search when DOM is loaded
+// Placeholder: clear highlighted countries on map (to be implemented in your map.js)
+function clearHighlightedCountries() {
+  // Implement map clear highlight logic here
+  console.log('Clearing highlighted countries');
+}
+
+// Initialize everything on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('searchInput')) {
     setupSearch();
     updateSelectedCountriesList();
 
-    // Initialize highlight toggle button
-    document.getElementById('toggleHighlight').addEventListener('click', toggleHighlightEnabled);
+    // If you have a toggle button for highlights, setup handler:
+    const toggleBtn = document.getElementById('toggleHighlight');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', toggleHighlightEnabled);
+    }
   }
 });

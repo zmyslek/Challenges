@@ -12,12 +12,7 @@ export const state = {
     email: "traveler@example.com",
     trips: 12,
     joined: "2023-01-15"
-  },
-  galleryPhotos: JSON.parse(localStorage.getItem('galleryPhotos')) || [
-    { id: 1, country: 'France', date: '2023-05-15', url: 'https://images.unsplash.com/photo-1431274172761-fca41d930114?w=500' },
-    { id: 2, country: 'Italy', date: '2023-06-20', url: 'https://images.unsplash.com/photo-1495567720989-cebdbdd97913?w=500' },
-    { id: 3, country: 'Japan', date: '2023-07-10', url: 'https://images.unsplash.com/photo-1492571350019-22de08371fd3?w=500' }
-  ]
+  }
 };
 
 let countriesGeoJson = null;
@@ -133,12 +128,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   countriesGeoJson = await fetch('/assets/countries.geojson').then(res => res.json());
 
   // Initialize map, pass state.selectedCountries so map can highlight initially
-  await initializeMap('app', state);
-  updateHighlightedCountries();
+  if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
+    await initializeMap('app', state);
+    updateHighlightedCountries();
 
-  // Setup search and selected countries UI
-  setupSearchAutocomplete();
-  renderSelectedCountries();
+    const toggleBtn = document.getElementById('toggleHighlight');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', toggleHighlightEnabled);
+    }
+
+    // Also render countries if you're showing the list under the map
+    renderSelectedCountries();
+    setupSearchAutocomplete();
+  }
 
   // Attach toggle highlight if you have a button for it
   const toggleBtn = document.getElementById('toggleHighlight');
